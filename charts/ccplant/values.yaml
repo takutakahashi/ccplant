@@ -1,0 +1,93 @@
+# Default values for ccplant.
+# This file configures both backend (agentapi-proxy) and frontend (agentapi-ui) deployments
+
+backend:
+  # Backend (agentapi-proxy) specific configuration
+  replicaCount: 1
+  image:
+    repository: ghcr.io/takutakahashi/agentapi-proxy
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+  
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: backend.ccplant.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+  
+  resources: {}
+  
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+
+frontend:
+  # Frontend (agentapi-ui) specific configuration
+  replicaCount: 1
+  image:
+    repository: agentapi-ui
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  
+  ingress:
+    enabled: true
+    className: ""
+    annotations: {}
+    hosts:
+      - host: ccplant.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  
+  resources: {}
+  
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+  
+  # Environment variables for frontend
+  env: []
+  # - name: NODE_ENV
+  #   value: "production"
+  # - name: API_URL
+  #   value: "http://backend:8080"
+
+# Global configuration
+global:
+  imagePullSecrets: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
