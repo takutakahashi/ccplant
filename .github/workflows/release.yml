@@ -1,4 +1,4 @@
-name: Release Workflow
+name: Release ccplant Chart
 
 on:
   push:
@@ -10,14 +10,11 @@ permissions:
   packages: write
 
 jobs:
-  release-backend:
+  release-ccplant:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
 
       - name: Extract version from tag
         id: version
@@ -27,20 +24,6 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION from tag: $TAG"
-
-      - name: Update backend Chart.yaml version
-        run: |
-          sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" backend/helm/agentapi-proxy/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" backend/helm/agentapi-proxy/Chart.yaml
-          echo "Updated backend Chart.yaml versions:"
-          grep -E "^(version|appVersion):" backend/helm/agentapi-proxy/Chart.yaml
-
-      - name: Update frontend Chart.yaml version
-        run: |
-          sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" frontend/helm/agentapi-ui/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" frontend/helm/agentapi-ui/Chart.yaml
-          echo "Updated frontend Chart.yaml versions:"
-          grep -E "^(version|appVersion):" frontend/helm/agentapi-ui/Chart.yaml
 
       - name: Update ccplant Chart.yaml version
         run: |
@@ -54,16 +37,17 @@ jobs:
         with:
           version: '3.18.3'
 
-      - name: Lint Helm charts
+      - name: Update dependencies
         run: |
-          helm lint backend/helm/agentapi-proxy/
-          helm lint frontend/helm/agentapi-ui/
+          cd charts/ccplant
+          helm dependency update
+
+      - name: Lint ccplant Helm chart
+        run: |
           helm lint charts/ccplant/
 
-      - name: Package Helm charts
+      - name: Package ccplant Helm chart
         run: |
-          helm package backend/helm/agentapi-proxy/
-          helm package frontend/helm/agentapi-ui/
           helm package charts/ccplant/
           ls -la *.tgz
 
@@ -71,19 +55,8 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
 
-      - name: Push Helm charts to OCI registry
+      - name: Push ccplant chart to OCI registry
         run: |
-          # Push backend chart
-          BACKEND_CHART=$(ls agentapi-proxy-*.tgz)
-          echo "Pushing backend chart: $BACKEND_CHART"
-          helm push "$BACKEND_CHART" oci://ghcr.io/${{ github.repository_owner }}/charts
-          
-          # Push frontend chart
-          FRONTEND_CHART=$(ls agentapi-ui-*.tgz)
-          echo "Pushing frontend chart: $FRONTEND_CHART"
-          helm push "$FRONTEND_CHART" oci://ghcr.io/${{ github.repository_owner }}/charts
-          
-          # Push ccplant chart
           CCPLANT_CHART=$(ls ccplant-*.tgz)
           echo "Pushing ccplant chart: $CCPLANT_CHART"
           helm push "$CCPLANT_CHART" oci://ghcr.io/${{ github.repository_owner }}/charts
@@ -91,51 +64,36 @@ jobs:
       - name: Create release notes
         run: |
           cat > release-notes.md << EOF
-          # Release ${{ steps.version.outputs.tag }}
+          # ccplant Release ${{ steps.version.outputs.tag }}
           
           ## Installation
           
-          ### Backend (agentapi-proxy)
-          \`\`\`bash
-          helm install agentapi-proxy oci://ghcr.io/${{ github.repository_owner }}/charts/agentapi-proxy --version ${{ steps.version.outputs.version }}
-          \`\`\`
-          
-          ### Frontend (agentapi-ui)
-          \`\`\`bash
-          helm install agentapi-ui oci://ghcr.io/${{ github.repository_owner }}/charts/agentapi-ui --version ${{ steps.version.outputs.version }}
-          \`\`\`
-          
-          ### Complete Stack (ccplant)
           \`\`\`bash
           helm install ccplant oci://ghcr.io/${{ github.repository_owner }}/charts/ccplant --version ${{ steps.version.outputs.version }}
           \`\`\`
           
           ## Upgrade
           
-          ### Backend
-          \`\`\`bash
-          helm upgrade agentapi-proxy oci://ghcr.io/${{ github.repository_owner }}/charts/agentapi-proxy --version ${{ steps.version.outputs.version }}
-          \`\`\`
-          
-          ### Frontend
-          \`\`\`bash
-          helm upgrade agentapi-ui oci://ghcr.io/${{ github.repository_owner }}/charts/agentapi-ui --version ${{ steps.version.outputs.version }}
-          \`\`\`
-          
-          ### Complete Stack
           \`\`\`bash
           helm upgrade ccplant oci://ghcr.io/${{ github.repository_owner }}/charts/ccplant --version ${{ steps.version.outputs.version }}
           \`\`\`
           
           ## Chart Information
           
-          - **Version**: ${{ steps.version.outputs.version }}
-          - **Registry**: ghcr.io/${{ github.repository_owner }}/charts
-          - **Charts**: agentapi-proxy, agentapi-ui, ccplant
+          - **Chart Version**: ${{ steps.version.outputs.version }}
+          - **App Version**: ${{ steps.version.outputs.version }}
+          - **Registry**: ghcr.io/${{ github.repository_owner }}/charts/ccplant
+          - **Dependencies**: Uses latest agentapi-proxy and agentapi-ui OCI charts
+          
+          ## Components
+          
+          This chart deploys the complete ccplant stack including:
+          - agentapi-proxy (backend)
+          - agentapi-ui (frontend)
           
           ## Changes
           
-          See the individual component changelogs for detailed changes in this release.
+          See the [changelog](CHANGELOG.md) for detailed changes in this release.
           EOF
 
       - name: Create GitHub Release
@@ -143,17 +101,17 @@ jobs:
         with:
           body_path: release-notes.md
           files: |
-            *.tgz
+            ccplant-*.tgz
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Release ${{ steps.version.outputs.tag }}
+          name: ccplant Release ${{ steps.version.outputs.tag }}
           draft: false
           prerelease: false
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: helm-charts-${{ steps.version.outputs.version }}
+          name: ccplant-chart-${{ steps.version.outputs.version }}
           path: |
-            *.tgz
+            ccplant-*.tgz
             release-notes.md
           retention-days: 30
