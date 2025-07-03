@@ -25,12 +25,35 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION from tag: $TAG"
 
-      - name: Update ccplant Chart.yaml version
+      - name: Get latest backend and frontend versions
+        id: dependency_versions
         run: |
+          # Get latest tag from backend repository
+          BACKEND_TAG=$(gh api repos/takutakahashi/agentapi-proxy/releases/latest --jq '.tag_name')
+          BACKEND_VERSION=${BACKEND_TAG#v}
+          echo "backend_version=$BACKEND_VERSION" >> $GITHUB_OUTPUT
+          echo "Latest backend version: $BACKEND_VERSION"
+          
+          # Get latest tag from frontend repository  
+          FRONTEND_TAG=$(gh api repos/takutakahashi/agentapi-ui/releases/latest --jq '.tag_name')
+          FRONTEND_VERSION=${FRONTEND_TAG#v}
+          echo "frontend_version=$FRONTEND_VERSION" >> $GITHUB_OUTPUT
+          echo "Latest frontend version: $FRONTEND_VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update ccplant Chart.yaml version and dependencies
+        run: |
+          # Update ccplant chart version
           sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" charts/ccplant/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" charts/ccplant/Chart.yaml
-          echo "Updated ccplant Chart.yaml versions:"
-          grep -E "^(version|appVersion):" charts/ccplant/Chart.yaml
+          
+          # Update dependency versions
+          sed -i '/name: agentapi-proxy/,/alias: backend/ s/version: ".*"/version: "${{ steps.dependency_versions.outputs.backend_version }}"/' charts/ccplant/Chart.yaml
+          sed -i '/name: agentapi-ui/,/alias: frontend/ s/version: ".*"/version: "${{ steps.dependency_versions.outputs.frontend_version }}"/' charts/ccplant/Chart.yaml
+          
+          echo "Updated ccplant Chart.yaml:"
+          cat charts/ccplant/Chart.yaml
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -83,7 +106,8 @@ jobs:
           - **Chart Version**: ${{ steps.version.outputs.version }}
           - **App Version**: ${{ steps.version.outputs.version }}
           - **Registry**: ghcr.io/${{ github.repository_owner }}/charts/ccplant
-          - **Dependencies**: Uses latest agentapi-proxy and agentapi-ui OCI charts
+          - **Backend Version**: ${{ steps.dependency_versions.outputs.backend_version }}
+          - **Frontend Version**: ${{ steps.dependency_versions.outputs.frontend_version }}
           
           ## Components
           
