@@ -7,10 +7,10 @@ appVersion: "1.0.0"
 
 dependencies:
   - name: agentapi-proxy
-    version: "0.2.0"
+    version: "1.41.2"
     repository: "oci://ghcr.io/takutakahashi/charts"
     alias: backend
   - name: agentapi-ui
-    version: "0.1.0"
+    version: "1.8.0"
     repository: "oci://ghcr.io/takutakahashi/charts"
     alias: frontend
