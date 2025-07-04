@@ -1,0 +1,187 @@
+name: Integration Test
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install k3s
+      run: |
+        curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+        sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        kubectl wait --for=condition=ready node --all --timeout=300s
+        kubectl get nodes
+
+    - name: Install Helm
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        helm version
+
+    - name: Build and push Docker images
+      run: |
+        # Build backend image
+        docker build -t agentapi:test .
+        
+        # Build frontend image
+        cd agentapi-ui
+        docker build -t agentapi-ui:test .
+        cd ..
+        
+        # Import images to k3s
+        sudo k3s ctr images import <(docker save agentapi:test)
+        sudo k3s ctr images import <(docker save agentapi-ui:test)
+
+    - name: Deploy with Helm
+      run: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        
+        # Create values file for test
+        cat > test-values.yaml <<EOF
+        backend:
+          image:
+            repository: agentapi
+            tag: test
+            pullPolicy: Never
+          service:
+            type: NodePort
+            nodePort: 30080
+        
+        frontend:
+          image:
+            repository: agentapi-ui
+            tag: test
+            pullPolicy: Never
+          service:
+            type: NodePort
+            nodePort: 30081
+          env:
+            NEXT_PUBLIC_AGENTAPI_PROXY_URL: "http://localhost:30080"
+        EOF
+        
+        # Install with Helm
+        helm install agentapi ./charts/agentapi -f test-values.yaml --wait --timeout 5m
+        
+        # Check deployment status
+        kubectl get pods
+        kubectl get services
+
+    - name: Wait for services to be ready
+      run: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=agentapi --timeout=300s
+        
+        # Test backend health
+        timeout 60 bash -c 'until curl -f http://localhost:30080/health; do sleep 2; done'
+        
+        # Test frontend health
+        timeout 60 bash -c 'until curl -f http://localhost:30081; do sleep 2; done'
+
+    - name: Install Playwright in frontend
+      working-directory: ./agentapi-ui
+      run: |
+        bun add -D @playwright/test
+        bunx playwright install --with-deps chromium
+
+    - name: Create Playwright config
+      working-directory: ./agentapi-ui
+      run: |
+        cat > playwright.config.ts <<'EOF'
+        import { defineConfig, devices } from '@playwright/test';
+
+        export default defineConfig({
+          testDir: './e2e',
+          fullyParallel: true,
+          forbidOnly: !!process.env.CI,
+          retries: process.env.CI ? 2 : 0,
+          workers: process.env.CI ? 1 : undefined,
+          reporter: 'html',
+          use: {
+            baseURL: 'http://localhost:30081',
+            trace: 'on-first-retry',
+          },
+          projects: [
+            {
+              name: 'chromium',
+              use: { ...devices['Desktop Chrome'] },
+            },
+          ],
+        });
+        EOF
+
+    - name: Create basic E2E test
+      working-directory: ./agentapi-ui
+      run: |
+        mkdir -p e2e
+        cat > e2e/basic.spec.ts <<'EOF'
+        import { test, expect } from '@playwright/test';
+
+        test('homepage loads successfully', async ({ page }) => {
+          await page.goto('/');
+          await expect(page).toHaveTitle(/AgentAPI/);
+        });
+
+        test('can access chat interface', async ({ page }) => {
+          await page.goto('/');
+          // Wait for the page to load
+          await page.waitForLoadState('networkidle');
+          
+          // Check for main elements
+          const chatInterface = page.locator('[data-testid="chat-interface"], .chat-interface, main');
+          await expect(chatInterface).toBeVisible({ timeout: 10000 });
+        });
+
+        test('backend API is accessible', async ({ page }) => {
+          const response = await page.request.get('http://localhost:30080/health');
+          expect(response.ok()).toBeTruthy();
+        });
+        EOF
+
+    - name: Run Playwright tests
+      working-directory: ./agentapi-ui
+      run: |
+        bunx playwright test
+
+    - name: Upload Playwright report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: agentapi-ui/playwright-report/
+        retention-days: 30
+
+    - name: Collect logs on failure
+      if: failure()
+      run: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        echo "=== Pod Status ==="
+        kubectl get pods -o wide
+        echo "=== Pod Logs ==="
+        kubectl logs -l app.kubernetes.io/name=agentapi --all-containers=true --tail=100
+        echo "=== Service Status ==="
+        kubectl get services
+        echo "=== Events ==="
+        kubectl get events --sort-by='.lastTimestamp'
