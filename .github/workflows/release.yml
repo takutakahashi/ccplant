@@ -48,9 +48,9 @@ jobs:
           sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" charts/ccplant/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" charts/ccplant/Chart.yaml
           
-          # Update dependency versions (keep v prefix for OCI registry)
+          # Update dependency versions (agentapi-proxy needs v prefix, agentapi-ui doesn't)
           sed -i '/name: agentapi-proxy/,/alias: backend/ s/version: ".*"/version: "v${{ steps.dependency_versions.outputs.backend_version }}"/' charts/ccplant/Chart.yaml
-          sed -i '/name: agentapi-ui/,/alias: frontend/ s/version: ".*"/version: "v${{ steps.dependency_versions.outputs.frontend_version }}"/' charts/ccplant/Chart.yaml
+          sed -i '/name: agentapi-ui/,/alias: frontend/ s/version: ".*"/version: "${{ steps.dependency_versions.outputs.frontend_version }}"/' charts/ccplant/Chart.yaml
           
           echo "Updated ccplant Chart.yaml:"
           cat charts/ccplant/Chart.yaml
