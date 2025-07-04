@@ -79,11 +79,46 @@ frontend:
     targetCPUUtilizationPercentage: 80
   
   # Environment variables for frontend
-  env: []
-  # - name: NODE_ENV
-  #   value: "production"
-  # - name: API_URL
-  #   value: "http://backend:8080"
+  env:
+    # Core configuration
+    - name: NODE_ENV
+      value: "production"
+    - name: API_URL
+      value: "http://backend:8080"
+    
+    # External API configuration
+    - name: REACT_APP_API_BASE_URL
+      value: "https://api.ccplant.local"
+    
+    # Application metadata
+    - name: REACT_APP_VERSION
+      value: "{{ .Chart.AppVersion }}"
+    - name: REACT_APP_ENVIRONMENT
+      value: "production"
+    
+    # Feature flags
+    - name: REACT_APP_FEATURE_DEBUG
+      value: "false"
+    - name: REACT_APP_FEATURE_ANALYTICS
+      value: "true"
+    
+    # Logging configuration
+    - name: REACT_APP_LOG_LEVEL
+      value: "info"
+    
+    # AI/Agent specific configuration
+    - name: REACT_APP_AGENT_TIMEOUT
+      value: "30000"
+    - name: REACT_APP_MAX_RETRIES
+      value: "3"
+    
+    # WebSocket configuration
+    - name: REACT_APP_WEBSOCKET_URL
+      value: "wss://api.ccplant.local/ws"
+    
+    # Authentication (placeholder for future use)
+    - name: REACT_APP_AUTH_ENABLED
+      value: "false"
 
 # Global configuration
 global:
