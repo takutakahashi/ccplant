@@ -60,6 +60,10 @@ jobs:
         with:
           version: '3.18.3'
 
+      - name: Login to GitHub Container Registry for dependencies
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+
       - name: Update dependencies
         run: |
           cd charts/ccplant
