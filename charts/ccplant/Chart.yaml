@@ -11,6 +11,6 @@ dependencies:
     repository: "oci://ghcr.io/takutakahashi/charts"
     alias: backend
   - name: agentapi-ui
-    version: "1.8.0"
+    version: "v1.8.0"
     repository: "oci://ghcr.io/takutakahashi/charts"
     alias: frontend
