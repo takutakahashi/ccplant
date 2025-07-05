@@ -41,51 +41,61 @@ jobs:
         curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
         helm version
 
-    - name: Build and push Docker images
+    - name: Login to GitHub Container Registry
       run: |
-        # Build backend image
-        cd backend
-        docker build -t agentapi:test .
-        cd ..
-        
-        # Build frontend image
-        cd frontend
-        docker build -t agentapi-ui:test .
-        cd ..
-        
-        # Import images to k3s
-        sudo k3s ctr images import <(docker save agentapi:test)
-        sudo k3s ctr images import <(docker save agentapi-ui:test)
+        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
 
     - name: Deploy with Helm
       run: |
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
         
+        # Update Helm dependencies
+        cd charts/ccplant
+        helm dependency update
+        cd ../..
+        
         # Create values file for test
         cat > test-values.yaml <<EOF
         backend:
           image:
-            repository: agentapi
-            tag: test
-            pullPolicy: Never
+            repository: ghcr.io/takutakahashi/agentapi-proxy
+            tag: latest
+            pullPolicy: Always
           service:
             type: NodePort
+            port: 8080
             nodePort: 30080
+          ingress:
+            enabled: false
+          autoscaling:
+            enabled: false
+          replicaCount: 1
         
         frontend:
           image:
-            repository: agentapi-ui
-            tag: test
-            pullPolicy: Never
+            repository: ghcr.io/takutakahashi/agentapi-ui
+            tag: latest
+            pullPolicy: Always
           service:
             type: NodePort
+            port: 3000
             nodePort: 30081
+          ingress:
+            enabled: false
+          autoscaling:
+            enabled: false
+          replicaCount: 1
           env:
-            NEXT_PUBLIC_AGENTAPI_PROXY_URL: "http://localhost:30080"
+            - name: NODE_ENV
+              value: "production"
+            - name: API_URL
+              value: "http://localhost:30080"
+            - name: NEXT_PUBLIC_AGENTAPI_PROXY_URL
+              value: "http://localhost:30080"
         EOF
         
         # Install with Helm
-        helm install agentapi ./charts/agentapi -f test-values.yaml --wait --timeout 5m
+        helm install ccplant-test ./charts/ccplant -f test-values.yaml --wait --timeout 10m
         
         # Check deployment status
         kubectl get pods
@@ -94,7 +104,7 @@ jobs:
     - name: Wait for services to be ready
       run: |
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=agentapi --timeout=300s
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=ccplant-test --timeout=300s
         
         # Test backend health
         timeout 60 bash -c 'until curl -f http://localhost:30080/health; do sleep 2; done'
@@ -182,7 +192,7 @@ jobs:
         echo "=== Pod Status ==="
         kubectl get pods -o wide
         echo "=== Pod Logs ==="
-        kubectl logs -l app.kubernetes.io/name=agentapi --all-containers=true --tail=100
+        kubectl logs -l app.kubernetes.io/instance=ccplant-test --all-containers=true --tail=100
         echo "=== Service Status ==="
         kubectl get services
         echo "=== Events ==="
