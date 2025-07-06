@@ -1,0 +1,226 @@
+name: Integration Test (Helm/k3s)
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  integration-test-helm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install k3s
+      run: |
+        curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+        sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        kubectl wait --for=condition=ready node --all --timeout=300s
+        kubectl get nodes
+
+    - name: Install Helm
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        helm version
+
+    - name: Login to GitHub Container Registry for dependencies
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+
+    - name: Deploy with Helm
+      run: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        
+        # Update Helm dependencies
+        cd charts/ccplant
+        helm dependency update
+        cd ../..
+        
+        # Create values file for test
+        cat > test-values.yaml <<EOF
+        backend:
+          image:
+            repository: ghcr.io/takutakahashi/agentapi-proxy
+            tag: latest
+            pullPolicy: Always
+          service:
+            type: NodePort
+            port: 8080
+            nodePort: 30080
+          ingress:
+            enabled: false
+          autoscaling:
+            enabled: false
+          replicaCount: 1
+        
+        frontend:
+          image:
+            repository: ghcr.io/takutakahashi/agentapi-ui
+            tag: latest
+            pullPolicy: Always
+          service:
+            type: NodePort
+            port: 3000
+            nodePort: 30081
+          ingress:
+            enabled: false
+          autoscaling:
+            enabled: false
+          replicaCount: 1
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: API_URL
+              value: "http://localhost:30080"
+            - name: NEXT_PUBLIC_AGENTAPI_PROXY_URL
+              value: "http://localhost:30080"
+        EOF
+        
+        # Install with Helm
+        helm install ccplant-test ./charts/ccplant -f test-values.yaml --wait --timeout 10m
+        
+        # Check deployment status
+        kubectl get pods
+        kubectl get services
+
+    - name: Wait for services to be ready
+      run: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=ccplant-test --timeout=300s
+        
+        # Test backend health
+        timeout 60 bash -c 'until curl -f http://localhost:30080/health; do sleep 2; done'
+        
+        # Test frontend health
+        timeout 60 bash -c 'until curl -f http://localhost:30081; do sleep 2; done'
+
+    - name: Create E2E test directory
+      run: |
+        mkdir -p e2e-helm
+
+    - name: Install Playwright
+      working-directory: ./e2e-helm
+      run: |
+        npm init -y
+        npm install @playwright/test
+        npx playwright install --with-deps chromium
+
+    - name: Create Playwright config for Helm tests
+      working-directory: ./e2e-helm
+      run: |
+        cat > playwright.config.ts <<'EOF'
+        import { defineConfig, devices } from '@playwright/test';
+
+        export default defineConfig({
+          testDir: './tests',
+          fullyParallel: true,
+          forbidOnly: !!process.env.CI,
+          retries: process.env.CI ? 2 : 0,
+          workers: process.env.CI ? 1 : undefined,
+          reporter: 'html',
+          use: {
+            baseURL: 'http://localhost:30081',
+            trace: 'on-first-retry',
+          },
+          projects: [
+            {
+              name: 'chromium',
+              use: { ...devices['Desktop Chrome'] },
+            },
+          ],
+        });
+        EOF
+
+    - name: Create E2E tests for Helm deployment
+      working-directory: ./e2e-helm
+      run: |
+        mkdir -p tests
+        cat > tests/helm-deployment.spec.ts <<'EOF'
+        import { test, expect } from '@playwright/test';
+
+        test('homepage loads successfully via k3s NodePort', async ({ page }) => {
+          await page.goto('/');
+          await expect(page).toHaveTitle(/AgentAPI/);
+        });
+
+        test('can access chat interface via k3s deployment', async ({ page }) => {
+          await page.goto('/');
+          // Wait for the page to load
+          await page.waitForLoadState('networkidle');
+          
+          // Check for main elements
+          const chatInterface = page.locator('[data-testid="chat-interface"], .chat-interface, main');
+          await expect(chatInterface).toBeVisible({ timeout: 10000 });
+        });
+
+        test('backend API is accessible via k3s NodePort', async ({ page }) => {
+          const response = await page.request.get('http://localhost:30080/health');
+          expect(response.ok()).toBeTruthy();
+        });
+
+        test('kubernetes deployment is healthy', async ({ page }) => {
+          // Additional test to verify Kubernetes-specific functionality
+          const response = await page.request.get('http://localhost:30080/health');
+          expect(response.ok()).toBeTruthy();
+          
+          // Test that the app handles k8s environment properly
+          await page.goto('/');
+          await page.waitForLoadState('networkidle');
+          
+          // Verify that the app is running in production mode
+          const envIndicator = page.locator('[data-testid="env-indicator"], .env-indicator');
+          if (await envIndicator.isVisible()) {
+            await expect(envIndicator).toContainText('production');
+          }
+        });
+        EOF
+
+    - name: Run Playwright tests for Helm deployment
+      working-directory: ./e2e-helm
+      run: |
+        npx playwright test
+
+    - name: Upload Playwright report for Helm tests
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report-helm
+        path: e2e-helm/playwright-report/
+        retention-days: 30
+
+    - name: Collect logs on failure
+      if: failure()
+      run: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        echo "=== Pod Status ==="
+        kubectl get pods -o wide
+        echo "=== Pod Logs ==="
+        kubectl logs -l app.kubernetes.io/instance=ccplant-test --all-containers=true --tail=100
+        echo "=== Service Status ==="
+        kubectl get services
+        echo "=== Events ==="
+        kubectl get events --sort-by='.lastTimestamp'
+
+    - name: Cleanup Helm deployment
+      if: always()
+      run: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        helm uninstall ccplant-test || true
