@@ -1,0 +1,131 @@
+name: Integration Test
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Test with Docker Compose
+      run: |
+        # Start services with docker-compose
+        docker-compose up -d
+        
+        # Wait for services to be healthy
+        timeout 120 bash -c 'until docker-compose ps | grep "Up (healthy)"; do sleep 5; done'
+        
+        # Check service status
+        docker-compose ps
+        docker-compose logs
+
+    - name: Wait for services to be ready
+      run: |
+        # Test backend health
+        timeout 60 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+        
+        # Test frontend health
+        timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
+
+    - name: Install Playwright
+      run: |
+        npm install -g @playwright/test
+        npx playwright install --with-deps chromium
+
+    - name: Create Playwright config
+      run: |
+        cat > playwright.config.ts <<'EOF'
+        import { defineConfig, devices } from '@playwright/test';
+
+        export default defineConfig({
+          testDir: './e2e',
+          fullyParallel: true,
+          forbidOnly: !!process.env.CI,
+          retries: process.env.CI ? 2 : 0,
+          workers: process.env.CI ? 1 : undefined,
+          reporter: 'html',
+          use: {
+            baseURL: 'http://localhost:3000',
+            trace: 'on-first-retry',
+          },
+          projects: [
+            {
+              name: 'chromium',
+              use: { ...devices['Desktop Chrome'] },
+            },
+          ],
+        });
+        EOF
+
+    - name: Create basic E2E test
+      run: |
+        mkdir -p e2e
+        cat > e2e/basic.spec.ts <<'EOF'
+        import { test, expect } from '@playwright/test';
+
+        test('homepage loads successfully', async ({ page }) => {
+          await page.goto('/');
+          await expect(page).toHaveTitle(/AgentAPI/);
+        });
+
+        test('can access chat interface', async ({ page }) => {
+          await page.goto('/');
+          // Wait for the page to load
+          await page.waitForLoadState('networkidle');
+          
+          // Check for main elements
+          const chatInterface = page.locator('[data-testid="chat-interface"], .chat-interface, main');
+          await expect(chatInterface).toBeVisible({ timeout: 10000 });
+        });
+
+        test('backend API is accessible', async ({ page }) => {
+          const response = await page.request.get('http://localhost:8080/health');
+          expect(response.ok()).toBeTruthy();
+        });
+        EOF
+
+    - name: Run Playwright tests
+      run: |
+        npx playwright test
+
+    - name: Upload Playwright report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+
+    - name: Collect logs on failure
+      if: failure()
+      run: |
+        echo "=== Docker Compose Status ==="
+        docker-compose ps
+        echo "=== Docker Compose Logs ==="
+        docker-compose logs
+        echo "=== Container Status ==="
+        docker ps -a
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose down -v
