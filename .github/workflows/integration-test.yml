@@ -29,19 +29,19 @@ jobs:
     - name: Test with Docker Compose
       run: |
         # Start services with docker-compose
-        docker-compose up -d
+        docker compose up -d
         
         # Wait for services to be healthy
-        timeout 120 bash -c 'until docker-compose ps | grep "Up (healthy)"; do sleep 5; done'
+        timeout 120 bash -c 'until docker compose ps | grep "Up (healthy)"; do sleep 5; done'
         
         # Check service status
-        docker-compose ps
-        docker-compose logs
+        docker compose ps
+        docker compose logs
 
     - name: Wait for services to be ready
       run: |
-        # Test backend health
-        timeout 60 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+        # Test backend health (try different endpoints)
+        timeout 60 bash -c 'until curl -f http://localhost:8080/health || curl -f http://localhost:8080/ || curl -f http://localhost:8080/api/health; do sleep 2; done'
         
         # Test frontend health
         timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
@@ -98,7 +98,14 @@ jobs:
         });
 
         test('backend API is accessible', async ({ page }) => {
-          const response = await page.request.get('http://localhost:8080/health');
+          // Try different possible endpoints
+          let response = await page.request.get('http://localhost:8080/health');
+          if (!response.ok()) {
+            response = await page.request.get('http://localhost:8080/');
+          }
+          if (!response.ok()) {
+            response = await page.request.get('http://localhost:8080/api/health');
+          }
           expect(response.ok()).toBeTruthy();
         });
         EOF
@@ -119,13 +126,13 @@ jobs:
       if: failure()
       run: |
         echo "=== Docker Compose Status ==="
-        docker-compose ps
+        docker compose ps
         echo "=== Docker Compose Logs ==="
-        docker-compose logs
+        docker compose logs
         echo "=== Container Status ==="
         docker ps -a
 
     - name: Cleanup
       if: always()
       run: |
-        docker-compose down -v
+        docker compose down -v

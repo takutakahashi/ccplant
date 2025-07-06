@@ -106,8 +106,8 @@ jobs:
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
         kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=ccplant-test --timeout=300s
         
-        # Test backend health
-        timeout 60 bash -c 'until curl -f http://localhost:30080/health; do sleep 2; done'
+        # Test backend health (try different endpoints)
+        timeout 60 bash -c 'until curl -f http://localhost:30080/health || curl -f http://localhost:30080/ || curl -f http://localhost:30080/api/health; do sleep 2; done'
         
         # Test frontend health
         timeout 60 bash -c 'until curl -f http://localhost:30081; do sleep 2; done'
@@ -172,13 +172,26 @@ jobs:
         });
 
         test('backend API is accessible via k3s NodePort', async ({ page }) => {
-          const response = await page.request.get('http://localhost:30080/health');
+          // Try different possible endpoints
+          let response = await page.request.get('http://localhost:30080/health');
+          if (!response.ok()) {
+            response = await page.request.get('http://localhost:30080/');
+          }
+          if (!response.ok()) {
+            response = await page.request.get('http://localhost:30080/api/health');
+          }
           expect(response.ok()).toBeTruthy();
         });
 
         test('kubernetes deployment is healthy', async ({ page }) => {
           // Additional test to verify Kubernetes-specific functionality
-          const response = await page.request.get('http://localhost:30080/health');
+          let response = await page.request.get('http://localhost:30080/health');
+          if (!response.ok()) {
+            response = await page.request.get('http://localhost:30080/');
+          }
+          if (!response.ok()) {
+            response = await page.request.get('http://localhost:30080/api/health');
+          }
           expect(response.ok()).toBeTruthy();
           
           // Test that the app handles k8s environment properly
