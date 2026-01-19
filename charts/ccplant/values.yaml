@@ -1,115 +1,95 @@
-# Default values for ccplant.
-# This file configures both backend (agentapi-proxy) and frontend (agentapi-ui) deployments
-
-backend:
-  # Backend (agentapi-proxy) specific configuration
-  replicaCount: 2
-  image:
-    repository: ghcr.io/takutakahashi/agentapi-proxy
-    tag: "latest"
-    pullPolicy: IfNotPresent
-  
-  service:
-    type: ClusterIP
-    port: 8080
-  
-  ingress:
-    enabled: true
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    hosts:
-      - host: api.ccplant.local
-        paths:
-          - path: /api
-            pathType: Prefix
-    tls:
-      - secretName: ccplant-backend-tls
-        hosts:
-          - api.ccplant.local
-  
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 10
-    targetCPUUtilizationPercentage: 70
-
-frontend:
-  # Frontend (agentapi-ui) specific configuration
-  replicaCount: 2
-  image:
-    repository: ghcr.io/takutakahashi/agentapi-ui
-    tag: "latest"
-    pullPolicy: IfNotPresent
-  
-  service:
-    type: ClusterIP
-    port: 3000
-    targetPort: 3000
-  
-  ingress:
-    enabled: true
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    hosts:
-      - host: ccplant.local
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: ccplant-frontend-tls
-        hosts:
-          - ccplant.local
-  
-  resources:
-    limits:
-      cpu: 200m
-      memory: 256Mi
-    requests:
-      cpu: 50m
-      memory: 64Mi
-  
-  livenessProbe:
-    httpGet:
-      path: /
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  
-  readinessProbe:
-    httpGet:
-      path: /
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 5
-    targetCPUUtilizationPercentage: 70
-  
-  # Environment variables for frontend
-  env:
-    - name: NODE_ENV
-      value: "production"
-    - name: API_URL
-      value: "http://backend:8080"
-
-# Global configuration
 global:
-  imagePullSecrets: []
-  nodeSelector: {}
+  # 共通設定
+  hostname: cc-dev.example.com
+
+  # GitHub設定
+  github:
+    enterprise:
+      baseUrl: https://git.example.com
+      enabled: true
+
+  # GitHub OAuth設定
+  config:
+    auth:
+      github:
+        oauth:
+          clientId: ""
+          clientSecret: ""
+
+# UI固有の設定
+agentapi-ui:
+  config:
+    authMode: oauth_only
+    loginDescription: welcome
+    loginSubDescription: agentapi-ui
+    loginTitle: agentapi-ui
+    proxyUrl: http://agentapi-proxy:8080
+
+  cookieEncryptionSecret:
+    enabled: true
+    secretKey: cookie-encryption-secret
+    secretName: agentapi-ui-encryption
+
+  ingress:
+    className: nginx
+    enabled: true
+  # この値は global から生成する
+  #  hosts:
+  #  - host: cc-dev.example.com
+  #    paths:
+  #    - path: /
+  #      pathType: Prefix
+  #  tls:
+  #  - hosts:
+  #    - cc-dev.example.com
+  #    secretName: agentapi-ui-tls
+
+    # これはデフォルトで true
+  # oauthOnlyMode:
+  #   enabled: true
+
+# Proxy固有の設定
+agentapi-proxy:
+  authConfig:
+    github:
+      user_mapping:
+        default_permissions:
+        - session:create
+        - session:list
+        - session:delete
+        - session:access
+        default_role: user
+        team_role_mapping:
+          '*/myteam':
+            permissions:
+            - '*'
+            role: admin
+  config:
+    auth:
+      enabled: true
+      github:
+        enabled: true
+    webhook:
+      baseUrl: https://cc-api.example.com
+  ingress:
+    enabled: true
+    hostname: https://cc-api.example.com
+
+
+  kubernetesSession:
+    enabled: true
+    nodeSelector: {}
+    # これはデフォルト true
+    # otelCollector:
+    #   enabled: true
+    pvc:
+      enabled: false
+    tolerations: []
+  github:
+    app:
+      id: ""
+      privateKey:
+        key: private-key
+        secretName: github-app
+
   tolerations: []
-  affinity: {}
