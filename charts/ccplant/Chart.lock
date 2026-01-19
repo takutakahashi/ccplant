@@ -1,0 +1,9 @@
+dependencies:
+- name: agentapi-proxy
+  repository: oci://ghcr.io/takutakahashi/charts
+  version: 0.3.0-dev.20260119091505.8061312
+- name: agentapi-ui
+  repository: oci://ghcr.io/takutakahashi/charts
+  version: 0.1.0-dev.7d3873c
+digest: sha256:f77335d1a3fe97526b734731fa2cec72e559715caf99d53352ce75c1dd8488b5
+generated: "2026-01-19T09:21:19.21477728Z"
