@@ -1,6 +1,0 @@
-[submodule "backend"]
-	path = backend
-	url = https://github.com/takutakahashi/agentapi-proxy.git
-[submodule "frontend"]
-	path = frontend
-	url = https://github.com/takutakahashi/agentapi-ui.git
