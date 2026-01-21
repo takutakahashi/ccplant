@@ -7,8 +7,8 @@ appVersion: "1.0.0"
 
 dependencies:
   - name: agentapi-proxy
-    version: "0.3.0"
-    repository: "file://../../../agentapi-proxy/helm/agentapi-proxy"
+    version: "v1.187.0"
+    repository: "oci://ghcr.io/takutakahashi/charts"
   - name: agentapi-ui
-    version: "v0.1.0"
-    repository: "file://../../../agentapi-ui/helm/agentapi-ui"
+    version: "v1.94.0"
+    repository: "oci://ghcr.io/takutakahashi/charts"

@@ -1,9 +1,9 @@
 dependencies:
 - name: agentapi-proxy
-  repository: file://../../../agentapi-proxy/helm/agentapi-proxy
-  version: 0.3.0
+  repository: oci://ghcr.io/takutakahashi/charts
+  version: v1.187.0
 - name: agentapi-ui
-  repository: file://../../../agentapi-ui/helm/agentapi-ui
-  version: v0.1.0
-digest: sha256:b500c106b7b98f630df0971ae1cb14726a4308f612a3cbab83a1b00559876d73
-generated: "2026-01-21T11:22:55.565735983Z"
+  repository: oci://ghcr.io/takutakahashi/charts
+  version: v1.94.0
+digest: sha256:2f8a5f95ec236bac93fbec0e3d7707c2b3c624f6aacf75c7b0c27dd0d21ec88d
+generated: "2026-01-21T12:06:12.454322104Z"
