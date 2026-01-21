@@ -14,7 +14,7 @@ cd "${CHART_DIR}"
 helm dependency update
 
 echo "🔨 Generating Helm template output..."
-helm template ccplant . > "${EXPECTED_FILE}"
+helm template ccplant . --namespace default > "${EXPECTED_FILE}"
 
 echo "✅ Successfully updated ${EXPECTED_FILE}"
 echo ""

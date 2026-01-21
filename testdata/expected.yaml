@@ -140,7 +140,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: ccplant-agentapi-proxy
-    namespace: agentapi-ui
+    namespace: default
 roleRef:
   kind: Role
   name: ccplant-agentapi-proxy-session-manager
@@ -160,7 +160,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: agentapi-proxy-session
-    namespace: agentapi-ui
+    namespace: default
 roleRef:
   kind: Role
   name: agentapi-proxy-session
@@ -307,7 +307,7 @@ spec:
             - name: AGENTAPI_K8S_SESSION_ENABLED
               value: "true"
             - name: AGENTAPI_K8S_SESSION_NAMESPACE
-              value: "agentapi-ui"
+              value: "default"
             - name: AGENTAPI_K8S_SESSION_IMAGE
               value: "ghcr.io/takutakahashi/agentapi-proxy:v1.187.0"
             - name: AGENTAPI_K8S_SESSION_IMAGE_PULL_POLICY

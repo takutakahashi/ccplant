@@ -43,7 +43,7 @@ jobs:
     - name: Generate Helm template output
       working-directory: charts/ccplant
       run: |
-        helm template ccplant . > /tmp/actual.yaml
+        helm template ccplant . --namespace default > /tmp/actual.yaml
 
     - name: Compare with expected output
       run: |
