@@ -1,95 +1,77 @@
+# =============================================================================
+# グローバル設定
+# =============================================================================
 global:
-  # 共通設定
   hostname: cc-dev.example.com
+  apiHostname: cc-api.example.com
 
-  # GitHub設定
   github:
     enterprise:
-      baseUrl: https://git.example.com
-      enabled: true
-
-  # GitHub OAuth設定
-  config:
-    auth:
-      github:
-        oauth:
-          clientId: ""
-          clientSecret: ""
-
-# UI固有の設定
-agentapi-ui:
-  config:
-    authMode: oauth_only
-    loginDescription: welcome
-    loginSubDescription: agentapi-ui
-    loginTitle: agentapi-ui
-    proxyUrl: http://agentapi-proxy:8080
-
-  cookieEncryptionSecret:
-    enabled: true
-    secretKey: cookie-encryption-secret
-    secretName: agentapi-ui-encryption
+      enabled: false
+      baseUrl: ""
+    oauth:
+      clientId: ""
+      clientSecret: ""
 
   ingress:
     className: nginx
+    tls:
+      enabled: true
+
+# =============================================================================
+# agentapi-ui (Frontend) 設定
+# =============================================================================
+agentapi-ui:
+  config:
+    authMode: oauth_only
+    loginTitle: agentapi-ui
+    loginDescription: welcome
+    loginSubDescription: agentapi-ui
+
+  cookieEncryptionSecret:
     enabled: true
-  # この値は global から生成する
-  #  hosts:
-  #  - host: cc-dev.example.com
-  #    paths:
-  #    - path: /
-  #      pathType: Prefix
-  #  tls:
-  #  - hosts:
-  #    - cc-dev.example.com
-  #    secretName: agentapi-ui-tls
+    secretName: agentapi-ui-encryption
+    secretKey: cookie-encryption-secret
 
-    # これはデフォルトで true
-  # oauthOnlyMode:
-  #   enabled: true
+  ingress:
+    enabled: true
 
-# Proxy固有の設定
+# =============================================================================
+# agentapi-proxy (Backend API) 設定
+# =============================================================================
 agentapi-proxy:
+  github:
+    app:
+      id: ""
+      privateKey:
+        secretName: github-app
+        key: private-key
+
   authConfig:
     github:
       user_mapping:
-        default_permissions:
-        - session:create
-        - session:list
-        - session:delete
-        - session:access
         default_role: user
-        team_role_mapping:
-          '*/myteam':
-            permissions:
-            - '*'
-            role: admin
+        default_permissions:
+          - session:create
+          - session:list
+          - session:delete
+          - session:access
+        team_role_mapping: {}
+
   config:
     auth:
       enabled: true
       github:
         enabled: true
-    webhook:
-      baseUrl: https://cc-api.example.com
+
   ingress:
     enabled: true
-    hostname: https://cc-api.example.com
-
 
   kubernetesSession:
     enabled: true
     nodeSelector: {}
-    # これはデフォルト true
-    # otelCollector:
-    #   enabled: true
+    tolerations: []
     pvc:
       enabled: false
-    tolerations: []
-  github:
-    app:
-      id: ""
-      privateKey:
-        key: private-key
-        secretName: github-app
 
   tolerations: []
