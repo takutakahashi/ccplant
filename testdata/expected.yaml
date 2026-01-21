@@ -1,0 +1,567 @@
+---
+# Source: ccplant/charts/agentapi-proxy/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ccplant-agentapi-proxy
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: ccplant/charts/agentapi-proxy/templates/session-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentapi-proxy-session
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: ccplant/charts/agentapi-ui/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ccplant-agentapi-ui
+  labels:
+    helm.sh/chart: agentapi-ui-v1.94.0
+    app.kubernetes.io/name: agentapi-ui
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: ccplant/charts/agentapi-proxy/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccplant-agentapi-proxy-auth-config
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  auth-config.yaml: |
+    github:
+      user_mapping:
+        default_role: "user"
+        default_permissions:
+          - "session:create"
+          - "session:list"
+          - "session:delete"
+          - "session:access"
+---
+# Source: ccplant/charts/agentapi-proxy/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ccplant-agentapi-proxy-session-manager
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "update", "delete", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Leader election for schedule worker (enabled by default)
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# Source: ccplant/charts/agentapi-proxy/templates/session-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agentapi-proxy-session
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  # Minimal permissions for session pods
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  # Permissions for credentials-sync sidecar to sync credentials.json to Secret
+  # Note: 'get' is not needed - uses create-first then replace approach
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "update"]
+---
+# Source: ccplant/charts/agentapi-proxy/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ccplant-agentapi-proxy-session-manager
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+  - kind: ServiceAccount
+    name: ccplant-agentapi-proxy
+    namespace: default
+roleRef:
+  kind: Role
+  name: ccplant-agentapi-proxy-session-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: ccplant/charts/agentapi-proxy/templates/session-rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agentapi-proxy-session
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+  - kind: ServiceAccount
+    name: agentapi-proxy-session
+    namespace: default
+roleRef:
+  kind: Role
+  name: agentapi-proxy-session
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: ccplant/charts/agentapi-proxy/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccplant-agentapi-proxy
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: agentapi-base
+  selector:
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+---
+# Source: ccplant/charts/agentapi-ui/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccplant-agentapi-ui
+  labels:
+    helm.sh/chart: agentapi-ui-v1.94.0
+    app.kubernetes.io/name: agentapi-ui
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: agentapi-ui
+    app.kubernetes.io/instance: ccplant
+---
+# Source: ccplant/charts/agentapi-proxy/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccplant-agentapi-proxy
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentapi-proxy
+      app.kubernetes.io/instance: ccplant
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: agentapi-proxy-v1.187.0
+        app.kubernetes.io/name: agentapi-proxy
+        app.kubernetes.io/instance: ccplant
+        app.kubernetes.io/version: "v1.187.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: ccplant-agentapi-proxy
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsGroup: 999
+      containers:
+        - name: agentapi-proxy
+          securityContext:
+            null
+          image: "ghcr.io/takutakahashi/agentapi-proxy:v1.187.0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: agentapi-start
+              containerPort: 9000
+              protocol: TCP
+          env:
+            - name: HOME
+              value: "/home/agentapi"
+            # Application configuration via environment variables (AGENTAPI_ prefix)
+            - name: AGENTAPI_AUTH_ENABLED
+              value: "true"
+            - name: AGENTAPI_AUTH_STATIC_ENABLED
+              value: "false"
+            - name: AGENTAPI_AUTH_STATIC_HEADER_NAME
+              value: "X-API-Key"
+            - name: AGENTAPI_AUTH_GITHUB_ENABLED
+              value: "true"
+            - name: AGENTAPI_AUTH_GITHUB_BASE_URL
+              value: "https://api.github.com"
+            - name: AGENTAPI_AUTH_GITHUB_TOKEN_HEADER
+              value: "Authorization"
+            - name: AGENTAPI_AUTH_GITHUB_OAUTH_CLIENT_ID
+              value: ""
+            - name: AGENTAPI_AUTH_GITHUB_OAUTH_CLIENT_SECRET
+              value: ""
+            - name: AGENTAPI_AUTH_GITHUB_OAUTH_SCOPE
+              value: "read:user read:org repo workflow"
+            - name: AGENTAPI_AUTH_GITHUB_OAUTH_BASE_URL
+              value: ""
+            - name: AGENTAPI_AUTH_CONFIG_FILE
+              value: "/etc/auth-config/auth-config.yaml"
+            # Role-based environment files configuration
+            - name: AGENTAPI_ROLE_ENV_FILES_ENABLED
+              value: "false"
+            - name: AGENTAPI_ROLE_ENV_FILES_PATH
+              value: "/etc/role-env-files"
+            - name: AGENTAPI_ROLE_ENV_FILES_LOAD_DEFAULT
+              value: "true"
+            - name: GITHUB_APP_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: github-app
+                  key: private-key
+            - name: GITHUB_APP_PEM_PATH
+              value: "/etc/github-app/private-key"
+            - name: NOTIFICATION_BASE_URL
+              value: "https://cc-dev.example.com"
+            # Webhook configuration
+            - name: AGENTAPI_WEBHOOK_BASE_URL
+              value: "https://cc-dev.example.com"
+            # Kubernetes Session Management configuration
+            - name: AGENTAPI_K8S_SESSION_ENABLED
+              value: "true"
+            - name: AGENTAPI_K8S_SESSION_NAMESPACE
+              value: "default"
+            - name: AGENTAPI_K8S_SESSION_IMAGE
+              value: "ghcr.io/takutakahashi/agentapi-proxy:v1.187.0"
+            - name: AGENTAPI_K8S_SESSION_IMAGE_PULL_POLICY
+              value: "IfNotPresent"
+            - name: AGENTAPI_K8S_SESSION_SERVICE_ACCOUNT
+              value: "agentapi-proxy-session"
+            - name: AGENTAPI_K8S_SESSION_BASE_PORT
+              value: "9000"
+            - name: AGENTAPI_K8S_SESSION_CPU_REQUEST
+              value: "500m"
+            - name: AGENTAPI_K8S_SESSION_CPU_LIMIT
+              value: "2"
+            - name: AGENTAPI_K8S_SESSION_MEMORY_REQUEST
+              value: "512Mi"
+            - name: AGENTAPI_K8S_SESSION_MEMORY_LIMIT
+              value: "4Gi"
+            - name: AGENTAPI_K8S_SESSION_PVC_ENABLED
+              value: "false"
+            - name: AGENTAPI_K8S_SESSION_PVC_STORAGE_CLASS
+              value: ""
+            - name: AGENTAPI_K8S_SESSION_PVC_STORAGE_SIZE
+              value: "10Gi"
+            - name: AGENTAPI_K8S_SESSION_POD_START_TIMEOUT
+              value: "120"
+            - name: AGENTAPI_K8S_SESSION_POD_STOP_TIMEOUT
+              value: "30"
+            # OpenTelemetry Collector configuration
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_ENABLED
+              value: "true"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_IMAGE
+              value: "otel/opentelemetry-collector-contrib:0.143.1"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_SCRAPE_INTERVAL
+              value: "15s"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_CLAUDE_CODE_PORT
+              value: "9464"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_EXPORTER_PORT
+              value: "9090"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_CPU_REQUEST
+              value: "100m"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_CPU_LIMIT
+              value: "200m"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_MEMORY_REQUEST
+              value: "128Mi"
+            - name: AGENTAPI_KUBERNETES_SESSION_OTEL_COLLECTOR_MEMORY_LIMIT
+              value: "256Mi"
+            # MCP server configuration
+            - name: AGENTAPI_K8S_SESSION_MCP_SERVERS_ENABLED
+              value: "true"
+            - name: AGENTAPI_K8S_SESSION_MCP_SERVERS_BASE_SECRET
+              value: "mcp-servers-base"
+            # Schedule Worker configuration (enabled by default)
+            - name: AGENTAPI_SCHEDULE_WORKER_ENABLED
+              value: "true"
+            - name: AGENTAPI_SCHEDULE_WORKER_CHECK_INTERVAL
+              value: "30s"
+            # GitHub Token configuration (for backward compatibility)
+            # Claude Code configuration
+            # OAuth configuration
+            # VAPID configuration
+          volumeMounts:
+            - name: auth-config
+              mountPath: /etc/auth-config
+              readOnly: true
+            - name: github-app-private-key
+              mountPath: /etc/github-app
+              readOnly: true
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 8
+              memory: 8Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: auth-config
+          configMap:
+            name: ccplant-agentapi-proxy-auth-config
+        - name: github-app-private-key
+          secret:
+            secretName: github-app
+            defaultMode: 0440
+---
+# Source: ccplant/charts/agentapi-ui/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccplant-agentapi-ui
+  labels:
+    helm.sh/chart: agentapi-ui-v1.94.0
+    app.kubernetes.io/name: agentapi-ui
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agentapi-ui
+      app.kubernetes.io/instance: ccplant
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: agentapi-ui-v1.94.0
+        app.kubernetes.io/name: agentapi-ui
+        app.kubernetes.io/instance: ccplant
+        app.kubernetes.io/version: "v1.94.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: ccplant-agentapi-ui
+      securityContext:
+        {}
+      containers:
+        - name: agentapi-ui
+          securityContext:
+            {}
+          image: "ghcr.io/takutakahashi/agentapi-ui:v1.94.0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          env:
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agentapi-ui-encryption
+                  key: encryption-key
+            - name: COOKIE_ENCRYPTION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: agentapi-ui-encryption
+                  key: cookie-encryption-secret
+            - name: COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: agentapi-ui-encryption
+                  key: cookie-encryption-secret
+            - name: AGENTAPI_PROXY_URL
+              value: "http://ccplant-backend:8080"
+            - name: NEXT_PUBLIC_ALLOWED_ORIGINS
+              value: "https://cc-dev.example.com"
+            # Application configuration (runtime settings)
+            - name: AUTH_MODE
+              value: "oauth_only"
+            - name: LOGIN_TITLE
+              value: "agentapi-ui"
+            - name: LOGIN_DESCRIPTION
+              value: "welcome"
+            - name: LOGIN_SUB_DESCRIPTION
+              value: "agentapi-ui"
+            # PWA configuration
+            - name: PWA_APP_NAME
+              value: "AgentAPI UI"
+            - name: PWA_SHORT_NAME
+              value: "AgentAPI"
+            - name: PWA_DESCRIPTION
+              value: "User interface for AgentAPI - AI agent conversation management"
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: ccplant/charts/agentapi-proxy/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ccplant-agentapi-proxy
+  labels:
+    helm.sh/chart: agentapi-proxy-v1.187.0
+    app.kubernetes.io/name: agentapi-proxy
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "agentapi.example.com"
+      secretName: agentapi-proxy-tls
+  rules:
+    - host: "agentapi.example.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ccplant-agentapi-proxy
+                port:
+                  number: 8080
+---
+# Source: ccplant/charts/agentapi-ui/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ccplant-agentapi-ui
+  labels:
+    helm.sh/chart: agentapi-ui-v1.94.0
+    app.kubernetes.io/name: agentapi-ui
+    app.kubernetes.io/instance: ccplant
+    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "cc-dev.example.com"
+      secretName: ccplant-agentapi-ui-tls
+  rules:
+    - host: cc-dev.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ccplant-agentapi-ui
+                port:
+                  number: 3000

@@ -1,0 +1,77 @@
+name: Helm Template Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'charts/ccplant/**'
+      - 'testdata/expected.yaml'
+      - '.github/workflows/helm-template-validation.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'charts/ccplant/**'
+      - 'testdata/expected.yaml'
+      - '.github/workflows/helm-template-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-helm-template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: 'v3.14.0'
+
+    - name: Login to GitHub Container Registry
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+
+    - name: Update Helm dependencies
+      working-directory: charts/ccplant
+      run: |
+        helm dependency update
+
+    - name: Generate Helm template output
+      working-directory: charts/ccplant
+      run: |
+        helm template ccplant . --namespace default > /tmp/actual.yaml
+
+    - name: Compare with expected output
+      run: |
+        if ! diff -u testdata/expected.yaml /tmp/actual.yaml; then
+          echo "::error::Helm template output differs from expected.yaml"
+          echo "::error::Please update testdata/expected.yaml by running:"
+          echo "::error::  cd charts/ccplant && helm template ccplant . > ../../testdata/expected.yaml"
+          exit 1
+        fi
+        echo "✅ Helm template output matches expected.yaml"
+
+    - name: Upload actual output as artifact
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: helm-template-actual
+        path: /tmp/actual.yaml
+        retention-days: 7
+
+    - name: Upload diff as artifact
+      if: failure()
+      run: |
+        diff -u testdata/expected.yaml /tmp/actual.yaml > /tmp/diff.txt || true
+
+    - name: Upload diff artifact
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: helm-template-diff
+        path: /tmp/diff.txt
+        retention-days: 7
