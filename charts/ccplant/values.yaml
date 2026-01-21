@@ -10,8 +10,8 @@ global:
   # GitHub Enterprise 設定
   github:
     enterprise:
-      enabled: true
-      baseUrl: https://git.example.com
+      enabled: false
+      baseUrl: ""
     oauth:
       clientId: ""
       clientSecret: ""
