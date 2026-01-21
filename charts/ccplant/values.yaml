@@ -1,13 +1,10 @@
 # =============================================================================
 # グローバル設定
 # =============================================================================
-# サブチャートから {{ .Values.global.xxx }} で参照可能
 global:
-  # ホスト名
   hostname: cc-dev.example.com
   apiHostname: cc-api.example.com
 
-  # GitHub Enterprise 設定
   github:
     enterprise:
       enabled: false
@@ -16,7 +13,6 @@ global:
       clientId: ""
       clientSecret: ""
 
-  # 共通 Ingress 設定
   ingress:
     className: nginx
     tls:
@@ -26,39 +22,24 @@ global:
 # agentapi-ui (Frontend) 設定
 # =============================================================================
 agentapi-ui:
-  # ログイン画面
   config:
     authMode: oauth_only
     loginTitle: agentapi-ui
     loginDescription: welcome
     loginSubDescription: agentapi-ui
-    proxyUrl: http://agentapi-proxy:8080
 
-  # Cookie 暗号化
   cookieEncryptionSecret:
     enabled: true
     secretName: agentapi-ui-encryption
     secretKey: cookie-encryption-secret
 
-  # Ingress
   ingress:
     enabled: true
-    className: nginx
-    hosts:
-      - host: cc-dev.example.com
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - hosts:
-          - cc-dev.example.com
-        secretName: agentapi-ui-tls
 
 # =============================================================================
 # agentapi-proxy (Backend API) 設定
 # =============================================================================
 agentapi-proxy:
-  # GitHub App
   github:
     app:
       id: ""
@@ -66,7 +47,6 @@ agentapi-proxy:
         secretName: github-app
         key: private-key
 
-  # 認証・認可
   authConfig:
     github:
       user_mapping:
@@ -82,21 +62,15 @@ agentapi-proxy:
             permissions:
               - '*'
 
-  # アプリケーション設定
   config:
     auth:
       enabled: true
       github:
         enabled: true
-    webhook:
-      baseUrl: https://cc-api.example.com
 
-  # Ingress
   ingress:
     enabled: true
-    hostname: cc-api.example.com
 
-  # Kubernetes セッション
   kubernetesSession:
     enabled: true
     nodeSelector: {}
