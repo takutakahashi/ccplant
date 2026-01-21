@@ -1,0 +1,9 @@
+dependencies:
+- name: agentapi-proxy
+  repository: file://../../../agentapi-proxy/helm/agentapi-proxy
+  version: 0.3.0
+- name: agentapi-ui
+  repository: file://../../../agentapi-ui/helm/agentapi-ui
+  version: v0.1.0
+digest: sha256:b500c106b7b98f630df0971ae1cb14726a4308f612a3cbab83a1b00559876d73
+generated: "2026-01-21T11:22:55.565735983Z"
