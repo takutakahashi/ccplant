@@ -7,8 +7,8 @@ appVersion: "1.0.0"
 
 dependencies:
   - name: agentapi-proxy
-    version: "v1.187.0"
+    version: "v1.191.0"
     repository: "oci://ghcr.io/takutakahashi/charts"
   - name: agentapi-ui
-    version: "v1.94.0"
+    version: "v1.97.0"
     repository: "oci://ghcr.io/takutakahashi/charts"
