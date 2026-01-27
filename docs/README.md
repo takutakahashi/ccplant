@@ -9,7 +9,20 @@ ccplant は、AI エージェントのための統合デプロイメントソリ
 - [主要コンポーネント](./overview/components.md) - システムの構成要素
 - [技術スタック](./overview/tech-stack.md) - 使用している技術の詳細
 
-### 2. [バックエンド](./backend/)
+### 2. [機能](./features/)
+- [機能概要](./features/README.md) - 全機能の概要とクイックスタート
+- [セッション管理](./features/sessions.md) - セッションの作成、管理、削除
+- [チャット機能](./features/chat.md) - メッセージング、ストリーミング、フォントカスタマイズ
+- [Webhook](./features/webhooks.md) - GitHub Webhook 統合と自動化
+- [スケジュール](./features/schedules.md) - Cron ベースの定期実行
+- [エージェント管理](./features/agents.md) - エージェントの設定とマーケットプレイス
+- [認証とアクセス](./features/authentication.md) - ログイン方法と認証設定
+- [チームと権限](./features/permissions.md) - RBAC とロール管理
+- [MCP サーバー](./features/mcp-servers.md) - Model Context Protocol 統合
+- [プッシュ通知](./features/notifications.md) - ブラウザ通知の設定
+- [設定管理](./features/settings.md) - グローバル設定と個人設定
+
+### 3. [バックエンド](./backend/)
 - [概要](./backend/overview.md) - agentapi-proxy の概要
 - [アーキテクチャ](./backend/architecture.md) - バックエンドのアーキテクチャ
 - [API エンドポイント](./backend/api-endpoints.md) - REST API 仕様
@@ -20,7 +33,7 @@ ccplant は、AI エージェントのための統合デプロイメントソリ
 - [設定リファレンス](./backend/configuration.md) - 設定項目の詳細
 - [RBAC 権限](./backend/rbac.md) - Kubernetes RBAC 設定
 
-### 3. [フロントエンド](./frontend/)
+### 4. [フロントエンド](./frontend/)
 - [概要](./frontend/overview.md) - agentapi-ui の概要
 - [アーキテクチャ](./frontend/architecture.md) - フロントエンドのアーキテクチャ
 - [機能と UI](./frontend/features.md) - 主要機能とユーザーインターフェース
@@ -30,7 +43,7 @@ ccplant は、AI エージェントのための統合デプロイメントソリ
 - [セキュリティ](./frontend/security.md) - セキュリティ実装
 - [PWA 機能](./frontend/pwa.md) - Progressive Web App 機能
 
-### 4. [デプロイメント](./deployment/)
+### 5. [デプロイメント](./deployment/)
 - [クイックスタート](./deployment/quick-start.md) - 最短でデプロイする方法
 - [Docker Compose](./deployment/docker-compose.md) - Docker Compose でのデプロイ
 - [Kubernetes](./deployment/kubernetes.md) - Kubernetes へのデプロイ
@@ -38,13 +51,13 @@ ccplant は、AI エージェントのための統合デプロイメントソリ
 - [設定ガイド](./deployment/configuration.md) - デプロイ設定のベストプラクティス
 - [トラブルシューティング](./deployment/troubleshooting.md) - よくある問題と解決方法
 
-### 5. [開発](./development/)
+### 6. [開発](./development/)
 - [開発環境セットアップ](./development/setup.md) - ローカル開発環境の構築
 - [テスト](./development/testing.md) - テスト戦略と実行方法
 - [コントリビューション](./development/contributing.md) - プロジェクトへの貢献方法
 - [CI/CD パイプライン](./development/ci-cd.md) - 継続的インテグレーション/デリバリー
 
-### 6. [運用](./operations/)
+### 7. [運用](./operations/)
 - [モニタリング](./operations/monitoring.md) - システムの監視とメトリクス
 - [セキュリティ](./operations/security.md) - セキュリティベストプラクティス
 - [バックアップとリカバリ](./operations/backup-recovery.md) - データ保護
