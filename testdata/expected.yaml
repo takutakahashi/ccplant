@@ -5,10 +5,10 @@ kind: ServiceAccount
 metadata:
   name: ccplant-agentapi-proxy
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: true
 ---
@@ -18,10 +18,10 @@ kind: ServiceAccount
 metadata:
   name: agentapi-proxy-session
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: true
 ---
@@ -31,10 +31,10 @@ kind: ServiceAccount
 metadata:
   name: ccplant-agentapi-ui
   labels:
-    helm.sh/chart: agentapi-ui-v1.94.0
+    helm.sh/chart: agentapi-ui-v1.97.0
     app.kubernetes.io/name: agentapi-ui
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/version: "v1.97.0"
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: true
 ---
@@ -44,10 +44,10 @@ kind: ConfigMap
 metadata:
   name: ccplant-agentapi-proxy-auth-config
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 data:
   auth-config.yaml: |
@@ -66,10 +66,10 @@ kind: Role
 metadata:
   name: ccplant-agentapi-proxy-session-manager
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups: [""]
@@ -104,10 +104,10 @@ kind: Role
 metadata:
   name: agentapi-proxy-session
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 rules:
   # Minimal permissions for session pods
@@ -132,10 +132,10 @@ kind: RoleBinding
 metadata:
   name: ccplant-agentapi-proxy-session-manager
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 subjects:
   - kind: ServiceAccount
@@ -152,10 +152,10 @@ kind: RoleBinding
 metadata:
   name: agentapi-proxy-session
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 subjects:
   - kind: ServiceAccount
@@ -172,10 +172,10 @@ kind: Service
 metadata:
   name: ccplant-agentapi-proxy
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
@@ -198,10 +198,10 @@ kind: Service
 metadata:
   name: ccplant-agentapi-ui
   labels:
-    helm.sh/chart: agentapi-ui-v1.94.0
+    helm.sh/chart: agentapi-ui-v1.97.0
     app.kubernetes.io/name: agentapi-ui
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/version: "v1.97.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
@@ -220,10 +220,10 @@ kind: Deployment
 metadata:
   name: ccplant-agentapi-proxy
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 3
@@ -234,10 +234,10 @@ spec:
   template:
     metadata:
       labels:
-        helm.sh/chart: agentapi-proxy-v1.187.0
+        helm.sh/chart: agentapi-proxy-v1.191.0
         app.kubernetes.io/name: agentapi-proxy
         app.kubernetes.io/instance: ccplant
-        app.kubernetes.io/version: "v1.187.0"
+        app.kubernetes.io/version: "v1.191.0"
         app.kubernetes.io/managed-by: Helm
     spec:
       serviceAccountName: ccplant-agentapi-proxy
@@ -249,7 +249,7 @@ spec:
         - name: agentapi-proxy
           securityContext:
             null
-          image: "ghcr.io/takutakahashi/agentapi-proxy:v1.187.0"
+          image: "ghcr.io/takutakahashi/agentapi-proxy:v1.191.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -309,7 +309,7 @@ spec:
             - name: AGENTAPI_K8S_SESSION_NAMESPACE
               value: "default"
             - name: AGENTAPI_K8S_SESSION_IMAGE
-              value: "ghcr.io/takutakahashi/agentapi-proxy:v1.187.0"
+              value: "ghcr.io/takutakahashi/agentapi-proxy:v1.191.0"
             - name: AGENTAPI_K8S_SESSION_IMAGE_PULL_POLICY
               value: "IfNotPresent"
             - name: AGENTAPI_K8S_SESSION_SERVICE_ACCOUNT
@@ -413,10 +413,10 @@ kind: Deployment
 metadata:
   name: ccplant-agentapi-ui
   labels:
-    helm.sh/chart: agentapi-ui-v1.94.0
+    helm.sh/chart: agentapi-ui-v1.97.0
     app.kubernetes.io/name: agentapi-ui
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/version: "v1.97.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -427,10 +427,10 @@ spec:
   template:
     metadata:
       labels:
-        helm.sh/chart: agentapi-ui-v1.94.0
+        helm.sh/chart: agentapi-ui-v1.97.0
         app.kubernetes.io/name: agentapi-ui
         app.kubernetes.io/instance: ccplant
-        app.kubernetes.io/version: "v1.94.0"
+        app.kubernetes.io/version: "v1.97.0"
         app.kubernetes.io/managed-by: Helm
     spec:
       serviceAccountName: ccplant-agentapi-ui
@@ -440,7 +440,7 @@ spec:
         - name: agentapi-ui
           securityContext:
             {}
-          image: "ghcr.io/takutakahashi/agentapi-ui:v1.94.0"
+          image: "ghcr.io/takutakahashi/agentapi-ui:v1.97.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -508,10 +508,10 @@ kind: Ingress
 metadata:
   name: ccplant-agentapi-proxy
   labels:
-    helm.sh/chart: agentapi-proxy-v1.187.0
+    helm.sh/chart: agentapi-proxy-v1.191.0
     app.kubernetes.io/name: agentapi-proxy
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.187.0"
+    app.kubernetes.io/version: "v1.191.0"
     app.kubernetes.io/managed-by: Helm
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -543,10 +543,10 @@ kind: Ingress
 metadata:
   name: ccplant-agentapi-ui
   labels:
-    helm.sh/chart: agentapi-ui-v1.94.0
+    helm.sh/chart: agentapi-ui-v1.97.0
     app.kubernetes.io/name: agentapi-ui
     app.kubernetes.io/instance: ccplant
-    app.kubernetes.io/version: "v1.94.0"
+    app.kubernetes.io/version: "v1.97.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   ingressClassName: nginx
